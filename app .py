@@ -589,7 +589,7 @@ Build the HTML for the Impact column in the summary table.
 Only the clearest features get up/down labels; everything else shows a dash.
 """
     
-    try:
+try:
         if feature_label == "Days before arrival booking was made":
             v = int(float(raw_value))
             if v > 100:
