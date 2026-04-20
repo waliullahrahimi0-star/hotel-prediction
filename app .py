@@ -990,14 +990,14 @@ else:
 st.markdown("---")
 with st.expander("How this works"):
     st.markdown("""
-Model
+**Model**
 
 This tool uses a tuned Random Forest classifier which is trained on historical hotel
 reservation data. It was chosen afterlong testing it against Logistic Regression
 and Decision Tree baselines. The training set includes roughly 36,000 bookings
 with known outcomes.
 
-Class imbalance and threshold
+**Class imbalance and threshold**
 
 Around a third of the bookings in the training data were cancelled which is almost 33%.
 To stop the model from leaning too heavily toward the majority class, class
@@ -1008,13 +1008,13 @@ That means a booking is flagged as at risk when the model estimates a
 cancellation probability of 40% or higher. This makes the tool a bit more
 sensitive to likely cancellations, which are usually more costly to miss.
 
-Training data
+**Training data**
 
 Only bookings with a confirmed outcome  cancelled or completed were used
 for training. The arrival year field was removed because the dataset only
 covers 2017 and 2018, so it would not be very useful outside that period.
 
-Features used
+**Features used**
 
 The model uses information such as guest composition, stay length, room type,
 meal plan, booking channel, price, lead time, and previous cancellation
@@ -1022,7 +1022,7 @@ history.
 
 Lead time and past cancellation behaviour tend to be the strongest signals.
 
-Limitations
+**Limitations**
  
 This model cannot predict cancellations with complete certainty. Its probability
 estimates are based on historical patterns and may not fully reflect current
