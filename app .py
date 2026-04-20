@@ -390,7 +390,6 @@ _CAT_DISPLAY = {
 
 
 # Data loading and model training 
-
 @st.cache_data(show_spinner=False)
 def load_and_prepare_data():
     df = pd.read_csv("Hotel_Reservations.csv")
@@ -426,16 +425,16 @@ def train_model():
     return pipe
 
 
-
-# Feature importance
-
+# =============================================================================
+# Feature importance helpers (NEW in v3)
+# =============================================================================
 
 @st.cache_data(show_spinner=False)
 def get_top_importances(_mdl, n=7):
     """
-    Group one-hot encoded feature importances back into their parent features,
-then return the top n as a pandas Series sorted in descending order.
-The leading underscore is intentional so Streamlit skips hashing the model object.
+    Aggregate one-hot encoded feature importances back to parent-level groups,
+    then return the top-n as a pandas Series sorted descending.
+    Uses a leading underscore so Streamlit skips hashing the model object.
     """
     rf_clf     = _mdl.named_steps["classifier"]
     ohe_names  = (
@@ -465,6 +464,10 @@ The leading underscore is intentional so Streamlit skips hashing the model objec
 
 def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
                       bk_type, ret_guest, total_n, cancel_prob):
+    """
+    Construct a single natural-language sentence explaining the prediction
+    in terms of the user's actual inputs.
+    """
     avg_eur = avg_usd / EUR_TO_USD
     drivers = []
 
@@ -539,9 +542,10 @@ def build_explanation(lead_t, special_req, avg_usd, prev_cancel,
 def get_key_drivers(lead_t, special_req, avg_usd, prev_cancel,
                     bk_type, ret_guest, total_n, cancel_prob):
     """
-Return up to 4 key drivers as icon_class, text pairs.
-icon_class should be one of'driver-icon-up', 'driver-icon-down', or 'driver-icon-neut'.
-"""
+    Return a list of (icon_class, text) tuples for the Key Drivers panel.
+    icon_class is one of: 'driver-icon-up', 'driver-icon-down', 'driver-icon-neut'.
+    Returns at most 4 items.
+    """
     avg_eur = avg_usd / EUR_TO_USD
     drivers = []
 
@@ -583,13 +587,12 @@ icon_class should be one of'driver-icon-up', 'driver-icon-down', or 'driver-icon
 
 
 def get_impact_html(feature_label, raw_value):
-    
-   """
-Build the HTML for the Impact column in the summary table.
-Only the clearest features get up/down labels; everything else shows a dash.
-"""
-    
-try:
+    """
+    Return an HTML string for the Impact column of the summary table.
+    Only the most interpretable features receive directional labels;
+    others display a neutral dash.
+    """
+    try:
         if feature_label == "Days before arrival booking was made":
             v = int(float(raw_value))
             if v > 100:
@@ -672,12 +675,10 @@ try:
 
 
 def render_feature_chart(top_feats):
-    
     """
-    Plot feature importances as a horizontal bar chart using matplotlib,
-    and return the figure for st.pyplot().
-"""
-    
+    Render a horizontal bar chart of feature importances using matplotlib.
+    Returns the figure for use with st.pyplot().
+    """
     labels = top_feats.index.tolist()[::-1]
     values = top_feats.values.tolist()[::-1]
     n      = len(labels)
@@ -706,7 +707,10 @@ def render_feature_chart(top_feats):
     plt.tight_layout(pad=0.6)
     return fig
 
+
+# =============================================================================
 # Initialise model
+# =============================================================================
 
 with st.spinner("Preparing model — this may take a moment on first load…"):
     model = train_model()
@@ -714,7 +718,9 @@ with st.spinner("Preparing model — this may take a moment on first load…"):
 # Pre-compute importances once (cached)
 top_importances = get_top_importances(model)
 
-# Sidebar 
+# =============================================================================
+# Sidebar — UNCHANGED from v2
+# =============================================================================
 
 with st.sidebar:
     st.markdown("## Input Details")
@@ -763,7 +769,9 @@ with st.sidebar:
     st.markdown("---")
     predict_button = st.button("Generate Prediction")
 
-# Main content area 
+# =============================================================================
+# Main content area — title and subtitle (unchanged)
+# =============================================================================
 
 col_header, _ = st.columns([3, 1])
 with col_header:
@@ -777,7 +785,9 @@ with col_header:
 
 st.markdown('<hr class="divider">', unsafe_allow_html=True)
 
+# =============================================================================
 # Prediction logic
+# =============================================================================
 
 if predict_button:
     total_nights_val = int(weekend_nights) + int(week_nights)
@@ -831,7 +841,7 @@ if predict_button:
     proceed_p        = round(proba[0] * 100, 1)
     predicted_cancel = proba[1] >= CANCEL_THRESHOLD
 
-    # Build key drivers for right panel 
+    # ── Build key drivers for right panel ────────────────────────────────────
     key_drivers = get_key_drivers(
         int(lead_time), int(special_req), avg_price_usd,
         int(prev_cancels), booking_type, repeated_guest,
@@ -848,7 +858,7 @@ if predict_button:
         )
     drivers_html += "</div>"
 
-    #  Result cards 
+    # ── Result cards ──────────────────────────────────────────────────────────
     col1, col2 = st.columns([3, 2])
 
     with col1:
@@ -881,7 +891,7 @@ if predict_button:
                 </div>
             </div>""", unsafe_allow_html=True)
 
-    # Right panel: Confidence + Key Drivers 
+    # ── Right panel: Confidence + Key Drivers (UPDATED from v2) ──────────────
     with col2:
         st.markdown(f"""
         <div class="result-card" style="height:100%;">
@@ -908,7 +918,7 @@ if predict_button:
             </div>
         </div>""", unsafe_allow_html=True)
 
-    #  Feature importance chart 
+    # ── Feature importance chart (NEW in v3) ──────────────────────────────────
     st.markdown("---")
     st.markdown("""
     <div class="fi-card">
@@ -936,7 +946,7 @@ if predict_button:
         unsafe_allow_html=True,
     )
 
-    # Summary of Inputs Used 
+    # ── Summary of Inputs Used (UPDATED — three columns) ──────────────────────
     st.markdown("---")
     st.markdown("### Summary of Inputs Used")
 
@@ -985,49 +995,31 @@ else:
         </div>
     </div>""", unsafe_allow_html=True)
 
-# How This Works 
+# =============================================================================
+# How This Works (unchanged)
+# =============================================================================
 
 st.markdown("---")
 with st.expander("How this works"):
     st.markdown("""
-Model
+**Model**
 
-This tool uses a tuned Random Forest classifier trained on historical hotel
-reservation data. It was chosen after testing it against Logistic Regression
-and Decision Tree baselines. The training set includes roughly 36,000 bookings
-with known outcomes.
+This tool uses a tuned Random Forest classifier trained on historical hotel reservation data. The model was selected after comparing it against Logistic Regression and Decision Tree baselines. The training dataset contains approximately 36,000 reservations with confirmed outcomes.
 
-Class imbalance and threshold
+**Class imbalance and threshold**
 
-Around a third of the bookings in the training data were cancelled (~33%).
-To stop the model from leaning too heavily toward the majority class, class
-weights are applied during training. The prediction threshold is also set to
-0.40 instead of the default 0.50.
+Approximately 33% of reservations in the training data were cancelled. To prevent the model from simply favouring the majority class, class weighting is applied during training and the prediction threshold is set to 0.40 rather than the default 0.50. This means a booking is flagged as at risk of cancellation when the model assigns a cancellation probability of 40% or greater — improving sensitivity to the class that carries the greatest operational cost if missed.
 
-That means a booking is flagged as at risk when the model estimates a
-cancellation probability of 40% or higher. This makes the tool a bit more
-sensitive to likely cancellations, which are usually more costly to miss.
+**Training data**
 
-Training data
+Only reservations with a confirmed outcome — cancelled or completed — were used for training. The arrival year field was excluded, as the dataset covers only 2017 and 2018, making it an uninformative feature for deployment beyond that window.
 
-Only bookings with a confirmed outcome — cancelled or completed — were used
-for training. The arrival year field was removed because the dataset only
-covers 2017 and 2018, so it would not be very useful outside that period.
+**Features used**
 
-Features used
+The model draws on guest composition, stay duration, room type, meal plan, booking channel, pricing, lead time, and the guest's prior cancellation history. Lead time and prior cancellation behaviour carry the strongest predictive signal.
 
-The model uses information such as guest composition, stay length, room type,
-meal plan, booking channel, price, lead time, and previous cancellation
-history.
+**Limitations**
 
-Lead time and past cancellation behaviour tend to be the strongest signals.
+No model can predict reservation cancellations with complete certainty. Probability estimates are based on patterns in historical data and may not reflect current booking conditions. This tool is intended as a decision-support aid for revenue management teams and should be used alongside other operational context.
+""")
 
-Limitations
-
-This model cannot predict cancellations with complete certainty. Its probability
-estimates are based on historical patterns and may not fully reflect current
-booking conditions.
-
-It should be used as a decision-support tool for revenue management teams, not
-as a replacement for operational judgement.
-"""
