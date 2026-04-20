@@ -1,12 +1,3 @@
-"""
-Hotel Reservation Cancellation Predictor — v3
-Enhancements:
-  - Feature importance chart: "Key Factors Influencing This Prediction"
-  - Dynamic natural-language explanation of prediction drivers
-  - Right panel updated: Key Drivers replaces Room Type / Booking Type
-  - Summary table now includes "Impact on Prediction" column
-  - Sidebar and all model / training logic are completely unchanged
-"""
 
 import streamlit as st
 import pandas as pd
@@ -30,7 +21,7 @@ warnings.filterwarnings("ignore")
 
 st.set_page_config(
     page_title="Hotel Cancellation Predictor",
-    page_icon="◈",
+    page_icon="Hotel Reservations",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -41,91 +32,295 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-html, body, [class*="css"] { font-family: 'Inter', 'Roboto', 'Source Sans Pro', sans-serif; }
-section[data-testid="stSidebar"] { background-color: #f8f9fb; border-right: 1px solid #e8eaf0; }
-section[data-testid="stSidebar"] .block-container { padding-top: 2rem; }
-.main-title { font-size: 2rem; font-weight: 700; color: #111827; letter-spacing: -0.5px; margin-bottom: 0.2rem; }
-.main-subtitle { font-size: 1rem; color: #6b7280; font-weight: 400; margin-bottom: 2rem; }
-.result-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1.6rem 2rem; margin-bottom: 1rem; }
-.result-card-success { border-left: 5px solid #16a34a; background: #f0fdf4; }
-.result-card-fail { border-left: 5px solid #dc2626; background: #fff5f5; }
-.result-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin-bottom: 0.5rem; }
-.result-value { font-size: 1.6rem; font-weight: 700; color: #111827; margin-bottom: 0.3rem; }
-.result-message { font-size: 0.9rem; color: #374151; line-height: 1.6; }
-.sidebar-section { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; padding: 0.8rem 0 0.3rem 0; border-top: 1px solid #e5e7eb; margin-top: 0.5rem; }
-.sidebar-section:first-of-type { border-top: none; padding-top: 0; }
-.prob-bar-container { background: #f3f4f6; border-radius: 6px; height: 8px; margin-top: 0.6rem; overflow: hidden; }
-.prob-bar-fill-success { background: #16a34a; height: 8px; border-radius: 6px; }
-.prob-bar-fill-fail { background: #dc2626; height: 8px; border-radius: 6px; }
-.divider { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0; }
-/* ── Feature importance section ─────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html, body, [class*="css"] {
+  font-family: 'Inter', 'Roboto', sans-serif;
+}
+
+/* overall app */
+section[data-testid="stSidebar"] {
+  background: #f7f8fa;
+  border-right: 1px solid #e6e8ee;
+}
+
+section[data-testid="stSidebar"] .block-container {
+  padding-top: 1.8rem;
+}
+
+/* headings */
+.main-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.2rem;
+  letter-spacing: -0.4px;
+}
+
+.main-subtitle {
+  font-size: 0.98rem;
+  color: #6b7280;
+  margin-bottom: 1.8rem;
+}
+
+/* sidebar labels */
+.sidebar-section {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #98a2b3;
+  padding-top: 0.85rem;
+  margin-top: 0.65rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.sidebar-section:first-of-type {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* cards */
+.result-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.45rem 1.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.result-card-success {
+  background: #f3fcf5;
+  border-left: 4px solid #16a34a;
+}
+
+.result-card-fail {
+  background: #fff4f4;
+  border-left: 4px solid #dc2626;
+}
+
+.result-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #9ca3af;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.45rem;
+}
+
+.result-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.2rem;
+}
+
+.result-message {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #374151;
+}
+
+/* probability bar */
+.prob-bar-container {
+  height: 8px;
+  background: #eef1f5;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 0.6rem;
+}
+
+.prob-bar-fill-success {
+  height: 100%;
+  background: #16a34a;
+  border-radius: 999px;
+}
+
+.prob-bar-fill-fail {
+  height: 100%;
+  background: #dc2626;
+  border-radius: 999px;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.4rem 0;
+}
+
+/* feature importance block */
 .fi-card {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 1.4rem 1.8rem 1rem 1.8rem;
-    margin-top: 0.5rem;
-    margin-bottom: 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem 1rem;
+  margin-top: 0.4rem;
+  margin-bottom: 1rem;
 }
+
 .fi-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 0.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.15rem;
 }
+
 .fi-subtitle {
-    font-size: 0.82rem;
-    color: #6b7280;
-    margin-bottom: 0.8rem;
+  font-size: 0.81rem;
+  color: #6b7280;
+  margin-bottom: 0.8rem;
 }
+
 .explanation-box {
-    background: #f0f7ff;
-    border: 1px solid #dbeafe;
-    border-left: 4px solid #2563EB;
-    border-radius: 8px;
-    padding: 0.9rem 1.1rem;
-    font-size: 0.875rem;
-    color: #1e3a5f;
-    line-height: 1.7;
-    margin-top: 1rem;
+  background: #f5f9ff;
+  border: 1px solid #dbe7ff;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin-top: 0.95rem;
+  color: #1f3b64;
+  font-size: 0.87rem;
+  line-height: 1.65;
 }
-/* ── Key drivers bullets ─────────────────────────────────────────────────── */
-.driver-list { margin-top: 0.5rem; }
+
+/* key drivers */
+.driver-list {
+  margin-top: 0.5rem;
+}
+
 .driver-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.45rem;
-    margin-bottom: 0.45rem;
-    font-size: 0.82rem;
-    color: #374151;
-    line-height: 1.55;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-bottom: 0.42rem;
+  color: #374151;
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
-.driver-icon-up   { color: #dc2626; font-weight: 700; flex-shrink: 0; }
-.driver-icon-down { color: #16a34a; font-weight: 700; flex-shrink: 0; }
-.driver-icon-neut { color: #9ca3af; font-weight: 700; flex-shrink: 0; }
-/* ── Summary table (3 columns) ───────────────────────────────────────────── */
-.summary-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin-top: 0.5rem; }
-.summary-table thead tr { border-bottom: 1px solid #d1d5db; }
-.summary-table thead th { text-align: left; padding: 0.55rem 0.75rem; font-size: 0.78rem; font-weight: 500; color: #9ca3af; letter-spacing: 0.02em; }
-.summary-table tbody tr { border-bottom: 1px solid #f3f4f6; }
-.summary-table tbody tr:last-child { border-bottom: none; }
-.summary-table tbody td { padding: 0.6rem 0.75rem; color: #111827; font-size: 0.875rem; line-height: 1.5; }
-.summary-table tbody td:first-child { color: #374151; font-weight: 400; width: 40%; }
-.summary-table tbody td:nth-child(2) { color: #111827; font-weight: 500; width: 25%; }
-.summary-table tbody td:nth-child(3) { width: 35%; }
-.summary-table tbody tr:nth-child(even) { background: #f9fafb; }
-.impact-up   { color: #dc2626; font-size: 0.82rem; }
-.impact-down { color: #16a34a; font-size: 0.82rem; }
-.impact-neut { color: #9ca3af; font-size: 0.82rem; }
-/* ── Validation warning ──────────────────────────────────────────────────── */
-.validation-warning { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.85rem; color: #92400e; margin-bottom: 1rem; }
-/* ── Expander ────────────────────────────────────────────────────────────── */
-div[data-testid="stExpander"] { border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa; }
-/* ── Button ──────────────────────────────────────────────────────────────── */
-div[data-testid="stButton"] button { background: #111827; color: #ffffff; border: none; border-radius: 7px; padding: 0.55rem 1.5rem; font-weight: 500; font-size: 0.9rem; width: 100%; transition: background 0.2s; }
-div[data-testid="stButton"] button:hover { background: #374151; }
-#MainMenu { visibility: hidden; } footer { visibility: hidden; } header { visibility: hidden; }
+
+.driver-icon-up {
+  color: #dc2626;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.driver-icon-down {
+  color: #16a34a;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.driver-icon-neut {
+  color: #9ca3af;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* summary table */
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.45rem;
+  font-size: 0.875rem;
+}
+
+.summary-table thead tr {
+  border-bottom: 1px solid #d1d5db;
+}
+
+.summary-table thead th {
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.77rem;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.summary-table tbody tr {
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.summary-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.summary-table tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.summary-table tbody td {
+  padding: 0.62rem 0.7rem;
+  color: #111827;
+  line-height: 1.45;
+}
+
+.summary-table tbody td:first-child {
+  width: 40%;
+  color: #374151;
+}
+
+.summary-table tbody td:nth-child(2) {
+  width: 24%;
+  font-weight: 500;
+}
+
+.summary-table tbody td:nth-child(3) {
+  width: 36%;
+}
+
+.impact-up {
+  color: #dc2626;
+  font-size: 0.82rem;
+}
+
+.impact-down {
+  color: #16a34a;
+  font-size: 0.82rem;
+}
+
+.impact-neut {
+  color: #9ca3af;
+  font-size: 0.82rem;
+}
+
+/* warning */
+.validation-warning {
+  background: #fff9e8;
+  border: 1px solid #f4c95d;
+  color: #8a5a12;
+  border-radius: 8px;
+  padding: 0.78rem 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+/* streamlit bits */
+div[data-testid="stExpander"] {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fbfbfc;
+}
+
+div[data-testid="stButton"] button {
+  width: 100%;
+  border: none;
+  border-radius: 7px;
+  background: #111827;
+  color: white;
+  padding: 0.56rem 1.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+div[data-testid="stButton"] button:hover {
+  background: #2f3a4a;
+}
+
+/* hide default streamlit ui */
+#MainMenu { visibility: hidden; }
+header { visibility: hidden; }
+footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
