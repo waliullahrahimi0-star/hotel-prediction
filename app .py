@@ -583,10 +583,12 @@ icon_class should be one of'driver-icon-up', 'driver-icon-down', or 'driver-icon
 
 
 def get_impact_html(feature_label, raw_value):
+    
    """
 Build the HTML for the Impact column in the summary table.
 Only the clearest features get up/down labels; everything else shows a dash.
 """
+    
     try:
         if feature_label == "Days before arrival booking was made":
             v = int(float(raw_value))
@@ -670,10 +672,12 @@ Only the clearest features get up/down labels; everything else shows a dash.
 
 
 def render_feature_chart(top_feats):
+    
     """
     Plot feature importances as a horizontal bar chart using matplotlib,
     and return the figure for st.pyplot().
 """
+    
     labels = top_feats.index.tolist()[::-1]
     values = top_feats.values.tolist()[::-1]
     n      = len(labels)
